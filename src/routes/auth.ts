@@ -23,37 +23,51 @@ authRoutes.get("/auth/callback", async (c) => {
 
   const redirectUri = new URL("/auth/callback", c.req.url).toString();
 
-  const tokenResponse = await fetch("https://auth.monday.com/oauth2/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: c.env.MONDAY_CLIENT_ID,
-      client_secret: c.env.MONDAY_CLIENT_SECRET,
-      code,
-      redirect_uri: redirectUri,
-    }),
-  });
+  let tokenBody: string;
+  try {
+    const tokenResponse = await fetch("https://auth.monday.com/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: c.env.MONDAY_CLIENT_ID,
+        client_secret: c.env.MONDAY_CLIENT_SECRET,
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
 
-  if (!tokenResponse.ok) {
-    return c.text("Failed to exchange authorization code", 502);
+    tokenBody = await tokenResponse.text();
+    if (!tokenResponse.ok) {
+      console.error("Monday OAuth token exchange failed:", tokenResponse.status, tokenBody);
+      return c.text(`Failed to exchange authorization code: ${tokenBody}`, 502);
+    }
+  } catch (err) {
+    console.error("Fetch to monday OAuth failed:", err);
+    return c.text(`OAuth token exchange fetch error: ${err}`, 502);
   }
 
-  const { access_token } = (await tokenResponse.json()) as { access_token: string };
+  const { access_token } = JSON.parse(tokenBody) as { access_token: string };
 
-  const meResponse = await fetch("https://api.monday.com/2024-10/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: access_token,
-    },
-    body: JSON.stringify({ query: "{ me { id name email } }" }),
-  });
+  let meBody: string;
+  try {
+    const meResponse = await fetch("https://api.monday.com/v2", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: access_token,
+      },
+      body: JSON.stringify({ query: "{ me { id name email } }" }),
+    });
 
-  if (!meResponse.ok) {
-    return c.text("Failed to fetch user info", 502);
+    meBody = await meResponse.text();
+    if (!meResponse.ok) {
+      return c.text(`Failed to fetch user info: ${meBody}`, 502);
+    }
+  } catch (err) {
+    return c.text(`Monday API fetch error: ${err}`, 502);
   }
 
-  const { data } = (await meResponse.json()) as {
+  const { data } = JSON.parse(meBody) as {
     data: { me: { id: string; name: string; email: string } };
   };
   const user = data.me;

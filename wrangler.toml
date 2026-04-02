@@ -5,12 +5,12 @@ compatibility_flags = ["nodejs_compat"]
 
 [[kv_namespaces]]
 binding = "KV"
-id = "PLACEHOLDER"
+id = "b149b874687a45e9a2d93baab61878ff"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "monday-agent-layer-db"
-database_id = "PLACEHOLDER"
+database_id = "5f0b6577-f9f3-420d-8c3b-0df3091b6056"
 migrations_dir = "migrations"
 
 [[rules]]

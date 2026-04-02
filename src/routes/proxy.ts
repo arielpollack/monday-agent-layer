@@ -62,7 +62,7 @@ proxyRoutes.post("/api/graphql", async (c) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: user.mondayToken,
+        Authorization: `Bearer ${user.mondayToken}`,
       },
       body: JSON.stringify({ query }),
     });
