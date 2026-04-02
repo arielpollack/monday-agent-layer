@@ -13,6 +13,7 @@ export async function startServer(config: PluginConfig): Promise<void> {
   const endpoint = `${proxyUrl.replace(/\/$/, "")}/api/graphql`;
 
   const toolkit = new MondayAgentToolkit({
+    // Toolkit sends token as-is in Authorization header; proxy expects "Bearer mat_..." format
     mondayApiToken: `Bearer ${config.agentToken}`,
     mondayApiEndpoint: endpoint,
     toolsConfiguration: {
