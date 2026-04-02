@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>monday Agent Layer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f6f8; color: #323338; }
+    .container { max-width: 960px; margin: 0 auto; padding: 24px; }
+    h1 { margin-bottom: 24px; }
+    h2 { margin: 24px 0 12px; }
+    .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #e6e9ef; }
+    th { font-weight: 600; color: #676879; font-size: 13px; }
+    button { background: #0073ea; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    button:hover { background: #0060c0; }
+    button.danger { background: #e44258; }
+    button.danger:hover { background: #cc3548; }
+    input, select { padding: 8px 12px; border: 1px solid #c5c7d0; border-radius: 4px; font-size: 14px; }
+    .form-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .token-display { background: #f0f0f0; padding: 8px 12px; border-radius: 4px; font-family: monospace; word-break: break-all; margin: 8px 0; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .badge.read { background: #e6f4ea; color: #1e7e34; }
+    .badge.readwrite { background: #fff3e0; color: #e65100; }
+    .allowed { color: #1e7e34; }
+    .denied { color: #e44258; }
+    .tabs { display: flex; gap: 0; margin-bottom: 16px; }
+    .tab { padding: 8px 20px; cursor: pointer; border-bottom: 2px solid transparent; color: #676879; }
+    .tab.active { border-bottom-color: #0073ea; color: #0073ea; font-weight: 600; }
+    .filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center">
+      <h1>monday Agent Layer</h1>
+      <a href="/auth/logout"><button>Logout</button></a>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="tokens">Agent Tokens</div>
+      <div class="tab" data-tab="audit">Audit Log</div>
+    </div>
+
+    <div id="tokens-tab">
+      <div class="card">
+        <h2>Create Token</h2>
+        <div class="form-row">
+          <input type="text" id="token-label" placeholder="Label (e.g. Slack Bot)">
+          <select id="token-permission">
+            <option value="read">Read Only</option>
+            <option value="readwrite">Read + Write</option>
+          </select>
+          <button onclick="createToken()">Create</button>
+        </div>
+        <div id="new-token" class="hidden">
+          <strong>New token created — copy it now, it won't be shown again:</strong>
+          <div class="token-display" id="new-token-value"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Active Tokens</h2>
+        <table>
+          <thead>
+            <tr><th>Label</th><th>Permission</th><th>Created</th><th>Last Used</th><th></th></tr>
+          </thead>
+          <tbody id="tokens-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="audit-tab" class="hidden">
+      <div class="card">
+        <div class="filters">
+          <input type="text" id="audit-filter-label" placeholder="Filter by label">
+          <select id="audit-filter-allowed">
+            <option value="">All</option>
+            <option value="true">Allowed</option>
+            <option value="false">Denied</option>
+          </select>
+          <button onclick="loadAudit()">Filter</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Time</th><th>Token</th><th>Type</th><th>Status</th><th>Latency</th><th>Query</th></tr>
+          </thead>
+          <tbody id="audit-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const target = tab.dataset.tab;
+        document.getElementById('tokens-tab').classList.toggle('hidden', target !== 'tokens');
+        document.getElementById('audit-tab').classList.toggle('hidden', target !== 'audit');
+        if (target === 'audit') loadAudit();
+      });
+    });
+
+    async function loadTokens() {
+      const res = await fetch('/api/tokens');
+      if (res.status === 401 || res.redirected) { window.location.href = '/auth/login'; return; }
+      const tokens = await res.json();
+      const tbody = document.getElementById('tokens-body');
+      tbody.innerHTML = tokens.map(t => `
+        <tr>
+          <td>${esc(t.label)}</td>
+          <td><span class="badge ${t.permission}">${t.permission}</span></td>
+          <td>${new Date(t.createdAt).toLocaleDateString()}</td>
+          <td>${new Date(t.lastUsedAt).toLocaleDateString()}</td>
+          <td><button class="danger" onclick="revokeToken('${esc(t.fullToken)}')">Revoke</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function createToken() {
+      const label = document.getElementById('token-label').value.trim();
+      const permission = document.getElementById('token-permission').value;
+      if (!label) return alert('Please enter a label');
+
+      const res = await fetch('/api/tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label, permission }),
+      });
+      const data = await res.json();
+
+      document.getElementById('new-token-value').textContent = data.token;
+      document.getElementById('new-token').classList.remove('hidden');
+      document.getElementById('token-label').value = '';
+      loadTokens();
+    }
+
+    async function revokeToken(token) {
+      if (!confirm('Revoke this token? Agents using it will immediately lose access.')) return;
+      await fetch(`/api/tokens/${encodeURIComponent(token)}`, { method: 'DELETE' });
+      loadTokens();
+    }
+
+    async function loadAudit() {
+      const label = document.getElementById('audit-filter-label').value;
+      const allowed = document.getElementById('audit-filter-allowed').value;
+      const params = new URLSearchParams();
+      if (label) params.set('token_label', label);
+      if (allowed) params.set('allowed', allowed);
+
+      const res = await fetch(`/api/audit?${params}`);
+      const logs = await res.json();
+      const tbody = document.getElementById('audit-body');
+      tbody.innerHTML = logs.map(l => `
+        <tr>
+          <td>${new Date(l.created_at).toLocaleString()}</td>
+          <td>${esc(l.token_label)}</td>
+          <td>${l.operation_type}</td>
+          <td class="${l.allowed ? 'allowed' : 'denied'}">${l.allowed ? `${l.response_status}` : 'DENIED'}</td>
+          <td>${l.latency_ms !== null ? l.latency_ms + 'ms' : '-'}</td>
+          <td><code style="font-size:12px">${esc(l.gql_body.slice(0, 80))}${l.gql_body.length > 80 ? '...' : ''}</code></td>
+        </tr>
+      `).join('');
+    }
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    loadTokens();
+  </script>
+</body>
+</html>
