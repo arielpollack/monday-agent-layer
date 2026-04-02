@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+For full project context, read [AGENTS.md](AGENTS.md) which links to detailed docs.
+
 ## Project Overview
 
 A Cloudflare Worker that proxies monday.com GraphQL API requests with per-agent permission enforcement and audit logging. Users authenticate via monday.com OAuth, create scoped agent tokens (read-only or read+write), and agents use these tokens to hit the proxy. Internal monday.com project.
