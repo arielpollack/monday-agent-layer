@@ -1,0 +1,26 @@
+{
+  "id": "monday-agent-layer",
+  "name": "monday.com Agent Layer",
+  "description": "Proxied access to monday.com API with permission enforcement and audit logging.",
+  "version": "1.0.0",
+  "extensions": ["./index.ts"],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "agentToken": {
+        "type": "string",
+        "description": "Your mat_ agent token from the monday Agent Layer dashboard",
+        "sensitive": true
+      },
+      "proxyUrl": {
+        "type": "string",
+        "description": "Proxy base URL",
+        "default": "https://monday-agent-layer.ariel-kfir.workers.dev"
+      }
+    },
+    "required": ["agentToken"]
+  },
+  "metadata": {
+    "skills": ["./skills/monday-api"]
+  }
+}

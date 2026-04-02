@@ -1,0 +1,16 @@
+{
+  "name": "@mondaycom/openclaw-plugin-monday",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@mondaydotcomorg/agent-toolkit": "^4.2.1",
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "openclaw": {
+    "extensions": ["./index.ts"]
+  }
+}
