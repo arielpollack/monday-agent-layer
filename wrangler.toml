@@ -12,3 +12,7 @@ binding = "DB"
 database_name = "monday-agent-layer-db"
 database_id = "PLACEHOLDER"
 migrations_dir = "migrations"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
