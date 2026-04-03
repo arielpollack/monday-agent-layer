@@ -7,6 +7,9 @@
     "@mondaydotcomorg/agent-toolkit": "^4.2.1",
     "@modelcontextprotocol/sdk": "^1.12.1"
   },
+  "scripts": {
+    "setup": "bash setup.sh"
+  },
   "devDependencies": {
     "typescript": "^5.0.0"
   },
