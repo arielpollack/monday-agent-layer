@@ -4,9 +4,14 @@ Routes all monday.com API traffic through the [monday Agent Layer](../../README.
 
 ## Quick Start — Drop This to Your Agent
 
-Give your agent a `mat_` token and this repo URL. Paste this message to your agent:
+Give your agent a `mat_` token and paste this message:
 
-> Install the monday.com agent layer plugin from `https://github.com/arielpollack/monday-agent-layer`. Clone the repo, run `npm install` inside `packages/monday-mcp/`, then configure yourself as an MCP server pointing to `packages/monday-mcp/index.ts` with the environment variable `MONDAY_AGENT_TOKEN` set to `mat_YOUR_TOKEN_HERE`. Read `packages/monday-mcp/skills/monday-api/SKILL.md` for usage rules — all monday.com API access must go through this plugin, never call api.monday.com directly.
+> Set up the monday.com agent layer MCP server so you can access monday.com APIs. Try to do these steps yourself — if any step fails due to permissions, tell the user exactly which step to run manually.
+>
+> 1. `git clone https://github.com/arielpollack/monday-agent-layer.git`
+> 2. `cd monday-agent-layer/packages/monday-mcp && npm install`
+> 3. Add an MCP server to your config with command `npx tsx` and arg `/ABSOLUTE/PATH/TO/monday-agent-layer/packages/monday-mcp/index.ts`, with environment variable `MONDAY_AGENT_TOKEN` set to `mat_YOUR_TOKEN_HERE`.
+> 4. Read the file `monday-agent-layer/packages/monday-mcp/skills/monday-api/SKILL.md` and follow its rules — all monday.com access must go through this MCP server, never call api.monday.com directly.
 
 Replace `mat_YOUR_TOKEN_HERE` with the actual token from the dashboard.
 
